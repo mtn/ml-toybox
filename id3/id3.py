@@ -1,23 +1,8 @@
 import math
+import json
 from collections import Counter
 
 OUTPUT_ATTR = "play"
-data = [
-         {"humidity": "high", "outlook": "sunny", "play": "no", "temperature": "hot", "windy": "false"},
-         {"humidity": "high", "outlook": "sunny", "play": "no", "temperature": "hot", "windy": "true"},
-         {"humidity": "high", "outlook": "overcast", "play": "yes", "temperature": "hot", "windy": "false"},
-         {"humidity": "high", "outlook": "rainy", "play": "yes", "temperature": "mild", "windy": "false"},
-         {"humidity": "normal", "outlook": "rainy", "play": "yes", "temperature": "cool", "windy": "false"},
-         {"humidity": "normal", "outlook": "rainy", "play": "no", "temperature": "cool", "windy": "true"},
-         {"humidity": "normal", "outlook": "overcast", "play": "yes", "temperature": "cool", "windy": "true"},
-         {"humidity": "high", "outlook": "sunny", "play": "no", "temperature": "mild", "windy": "false"},
-         {"humidity": "normal", "outlook": "sunny", "play": "yes", "temperature": "cool", "windy": "false"},
-         {"humidity": "normal", "outlook": "rainy", "play": "yes", "temperature": "mild", "windy": "false"},
-         {"humidity": "normal", "outlook": "sunny", "play": "yes", "temperature": "mild", "windy": "true"},
-         {"humidity": "high", "outlook": "overcast", "play": "yes", "temperature": "mild", "windy": "true"},
-         {"humidity": "normal", "outlook": "overcast", "play": "yes", "temperature": "hot", "windy": "false"},
-         {"humidity": "high", "outlook": "rainy", "play": "no", "temperature": "mild", "windy": "true"}
-]
 
 
 def calculateEntropy(data,outAttr):
@@ -60,6 +45,7 @@ def calculateGain(data,inAttr,outAttr):
 def determineSplit(data,inAttrs,outAttr):
     maxGain = 0
     splitAttr = inAttrs[0]
+    print("----")
     print(inAttrs)
     for attr in set(inAttrs):
         gain = calculateGain(data,attr,outAttr)
@@ -72,14 +58,12 @@ def determineSplit(data,inAttrs,outAttr):
 
 def getMostFrequent(data,outArr):
     data = Counter([ var[outArr] for var in data ])
-    return data.most_common(1)  # Returns the highest occurring item
+    return data.most_common(1)
 
 def id3(data,outAttr,inAttrs):
-    if not data:
-        return
     if len(data) == data.count(data[0][outAttr]):
         return data[0][outArr]
-    if len(inAttrs) == 0:
+    if not data or len(inAttrs) == 0:
         return getMostFrequent(data,outAttr)
 
     split = determineSplit(data,inAttrs,outAttr)
@@ -96,6 +80,8 @@ def id3(data,outAttr,inAttrs):
 inAttrs = ["humidity","outlook","temperature","windy"]
 
 def main():
+    with open('data.json') as data_file:
+        data = json.load(data_file)["data"]
     id3(data,OUTPUT_ATTR,inAttrs)
 
 if __name__ == "__main__":
