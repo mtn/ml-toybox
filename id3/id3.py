@@ -1,4 +1,5 @@
 import math
+from collections import Counter
 
 OUTPUT_ATTR = "play"
 data = [
@@ -18,27 +19,11 @@ data = [
          {"humidity": "high", "outlook": "rainy", "play": "no", "temperature": "mild", "windy": "true"}
 ]
 
-# length = len(data["play"])
-
-class node:
-    def __init__(self,col,val,arc):
-        self.attr = attr          # attribute that was chosen to split
-        self.val = val            # at the leafs of the tree, will be a bucket
-        self.arc = arc
-
-class arc:
-    def __init__(self,attrVal,node):
-        self.attrVal = attrVal
-        self.node = node
-
-class tree:
-    def __init__(self,root):
-        self.root = root
 
 def calculateEntropy(data,outAttr):
     perType = {}
     for record in data:
-        if perType.has_key(record[outAttr]):
+        if record[outAttr] in perType:
             perType[record[outAttr]] += 1
         else:
             perType[record[outAttr]] = 1.0
@@ -53,7 +38,7 @@ def calculateEntropy(data,outAttr):
 def calculateGain(data,inAttr,outAttr):
     perType = {}
     for record in data:
-        if perType.has_key(record[inAttr]):
+        if record[inAttr] in perType:
             perType[record[inAttr]] += 1
         else:
             perType[record[inAttr]] = 1.0
@@ -61,7 +46,7 @@ def calculateGain(data,inAttr,outAttr):
     conditionalPairs = {}
     for record in data:
         key = (record[inAttr],record[outAttr])
-        if conditionalPairs.has_key(key):
+        if key in conditionalPairs:
             conditionalPairs[key] += 1
         else:
             conditionalPairs[key] = 1.0
@@ -72,12 +57,47 @@ def calculateGain(data,inAttr,outAttr):
 
     return calculateEntropy(data,"play") - ret
 
-# def divideOn(data,attr,value):
+def determineSplit(data,inAttrs,outAttr):
+    maxGain = 0
+    splitAttr = inAttrs[0]
+    print(inAttrs)
+    for attr in set(inAttrs):
+        gain = calculateGain(data,attr,outAttr)
+        print("gain " + str(gain) + " attr " + attr)
+        if gain > maxGain:
+            maxGain = gain
+            splitAttr = attr
 
-def id3():
-    # print calculateEntropy(data,OUTPUT_ATTR)
-    print calculateGain(data,"temperature",OUTPUT_ATTR)
-    # divideOn(data,"temperature","cool")
+    return splitAttr
 
-id3()
+def getMostFrequent(data,outArr):
+    data = Counter([ var[outArr] for var in data ])
+    return data.most_common(1)  # Returns the highest occurring item
+
+def id3(data,outAttr,inAttrs):
+    if not data:
+        return
+    if len(data) == data.count(data[0][outAttr]):
+        return data[0][outArr]
+    if len(inAttrs) == 0:
+        return getMostFrequent(data,outAttr)
+
+    split = determineSplit(data,inAttrs,outAttr)
+    tree = {split:{}}
+
+    for val in set( [ op[split] for op in data ] ):
+        subtree = id3( [ item for item in data if item[split] == val ],outAttr,[ attr for attr in inAttrs if attr != split ])
+        tree[split][val] = subtree
+
+    print(tree)
+    print("*****\n")
+    return tree
+
+inAttrs = ["humidity","outlook","temperature","windy"]
+
+def main():
+    id3(data,OUTPUT_ATTR,inAttrs)
+
+if __name__ == "__main__":
+    main()
 
