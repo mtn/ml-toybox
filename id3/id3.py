@@ -46,11 +46,8 @@ def calculateGain(data,inAttr,outAttr):
 def determineSplit(data,inAttrs,outAttr):
     maxGain = 0
     splitAttr = inAttrs[0]
-    # print("----")
-    # print(inAttrs)
     for attr in set(inAttrs):
         gain = calculateGain(data,attr,outAttr)
-        # print("gain " + str(gain) + " attr " + attr)
         if gain > maxGain:
             maxGain = gain
             splitAttr = attr
@@ -74,8 +71,6 @@ def id3(data,outAttr,inAttrs):
         subtree = id3( [ item for item in data if item[split] == val ],outAttr,[ attr for attr in inAttrs if attr != split ])
         tree[split][val] = subtree
 
-    # print(tree)
-    # print("*****\n")
     return tree
 
 inAttrs = ["humidity","outlook","temperature","windy"]
@@ -83,7 +78,6 @@ inAttrs = ["humidity","outlook","temperature","windy"]
 def main():
     with open('data.json') as data_file:
         data = json.load(data_file)["data"]
-    # id3(data,OUTPUT_ATTR,inAttrs)
     print(id3(data,OUTPUT_ATTR,inAttrs))
 
 if __name__ == "__main__":
