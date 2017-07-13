@@ -1,5 +1,6 @@
 import math
 import json
+from pprint import pprint
 from collections import Counter
 
 OUTPUT_ATTR = "play"
@@ -45,11 +46,11 @@ def calculateGain(data,inAttr,outAttr):
 def determineSplit(data,inAttrs,outAttr):
     maxGain = 0
     splitAttr = inAttrs[0]
-    print("----")
-    print(inAttrs)
+    # print("----")
+    # print(inAttrs)
     for attr in set(inAttrs):
         gain = calculateGain(data,attr,outAttr)
-        print("gain " + str(gain) + " attr " + attr)
+        # print("gain " + str(gain) + " attr " + attr)
         if gain > maxGain:
             maxGain = gain
             splitAttr = attr
@@ -61,9 +62,9 @@ def getMostFrequent(data,outArr):
     return data.most_common(1)
 
 def id3(data,outAttr,inAttrs):
-    if len(data) == data.count(data[0][outAttr]):
-        return data[0][outArr]
-    if not data or len(inAttrs) == 0:
+    if len(data) == [ var[outAttr] for var in data ].count(data[0][outAttr]):
+        return data[0][outAttr]
+    if not data or len(inAttrs) <= 1:
         return getMostFrequent(data,outAttr)
 
     split = determineSplit(data,inAttrs,outAttr)
@@ -73,8 +74,8 @@ def id3(data,outAttr,inAttrs):
         subtree = id3( [ item for item in data if item[split] == val ],outAttr,[ attr for attr in inAttrs if attr != split ])
         tree[split][val] = subtree
 
-    print(tree)
-    print("*****\n")
+    # print(tree)
+    # print("*****\n")
     return tree
 
 inAttrs = ["humidity","outlook","temperature","windy"]
@@ -82,7 +83,8 @@ inAttrs = ["humidity","outlook","temperature","windy"]
 def main():
     with open('data.json') as data_file:
         data = json.load(data_file)["data"]
-    id3(data,OUTPUT_ATTR,inAttrs)
+    # id3(data,OUTPUT_ATTR,inAttrs)
+    print(id3(data,OUTPUT_ATTR,inAttrs))
 
 if __name__ == "__main__":
     main()
