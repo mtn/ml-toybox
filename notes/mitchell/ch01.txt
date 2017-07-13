@@ -1,0 +1,50 @@
+# ch01
+
+Def: Learning is when a computer improves its performance at some task through experience
+    ex. A computer that learns to play checkers would improve its performance (as measured by ability to win) through the experience of playing against itself
+
+To have a well defined problem, we must define 3 features:
+    1) the class of tasks
+    2) the performance metric to be improved
+    3) the source of experience
+
+    In the case of checkers:
+        1) playing checkers
+        2) percentage of games won against opponents
+        3) practice games played against self
+
+Design Considerations:
+    Training attribute:
+        - Direct would be a series of board states with feedback on the "right move" for each
+        - Indirect feedback involves inferring quality of moves from eventual outcome
+            - Credit assignment (how much did each move contribute to final outcome?)
+            - Learning from direct is usually easier because of credit assignment
+        - How well does the training experience represent the test examples?
+            - Danger that training experience doesn't fully represent testing conditions
+    What type of knowledge will be learned? -> target function
+        - We want to generate legal checkers moves, and pick the best one out of these
+        - The full space of possible moves is known beforehand, but not an optimal strategy
+        - We want a target function that makes our learning easiest (ex. mapping from board states to move is harder to work with than mapping from board to numerical score)
+        - We want to acquire a good approximation of an ideal operational target function
+        There are different ways we can represent our target function
+            - ann, linear or polynomial function, large correspondence table...
+        We want our target function to best fit the training set.
+
+The full design can be summarized as a set of 4modules:
+    1) Performance System: solves the performance task (ex. playing checkers)
+        - Accepts a problem instance and returns a trace of its solution
+    2) Critic: accepts game trace and returns a set of training examples
+        - Corresponds to training rule
+    3) Generalizer: accepts training examples and produces an estimate of the target function
+        - Corresponds to LMS algo
+    4) Experiment Generator: takes current hypothesis and outputs a new problem for performance system
+        - Goal is to maximize learning rate by producing good practice problems
+
+    Based on these decisions, we can expect that if our hypothesized model is capable of modeling the data, we'll produce a good result
+
+
+
+
+
+
+
