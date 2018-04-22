@@ -1,0 +1,6 @@
+# ch03
+
+Decision tree learning helps us approximate (discrete-valued) targets. The tree is a disjunction of conjunctions; following an edge represents fixing an attribute.
+
+The method is usually suited to some specific problem types:
+

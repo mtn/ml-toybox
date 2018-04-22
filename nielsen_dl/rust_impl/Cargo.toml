@@ -1,0 +1,10 @@
+[package]
+name = "mnn"
+version = "0.1.0"
+authors = ["Michael Noronha <michaeltnoronha@gmail.com>"]
+
+[dependencies]
+mnist = "0.4.0"
+nalgebra = "0.13"
+rand = "0.4"
+
