@@ -5,5 +5,8 @@ authors = ["Michael Noronha <michaeltnoronha@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-ndarray = "0.12.1"
+ndarray = { version = "0.12.1" }
+ndarray-rand = "0.9.0"
 rand = "0.6.5"
+indicatif = "0.11.0"
+csv = "1"
