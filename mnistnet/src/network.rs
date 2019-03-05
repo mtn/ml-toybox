@@ -1,9 +1,10 @@
+use indicatif::{ProgressBar, ProgressStyle};
 use ndarray::Array;
 use ndarray_rand::RandomExt;
-use indicatif::{ProgressBar, ProgressStyle};
 use rand::distributions::{Distribution, Normal};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 pub type Input = ndarray::Array2<f64>;
@@ -13,7 +14,7 @@ pub type LayerWeights = ndarray::Array2<f64>;
 pub type LayerActivations = ndarray::Array2<f64>;
 pub type LayerDeltas = ndarray::Array2<f64>;
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum Label {
     Zero,
     One,
@@ -55,7 +56,7 @@ impl Label {
             &Label::Two => 2,
             &Label::Three => 3,
             &Label::Four => 4,
-            &Label::Five=> 5,
+            &Label::Five => 5,
             &Label::Six => 6,
             &Label::Seven => 7,
             &Label::Eight => 8,
@@ -63,7 +64,7 @@ impl Label {
         }
     }
 
-    pub fn from_num(num: u32) -> Label{
+    pub fn from_num(num: u32) -> Label {
         match num {
             0 => Label::Zero,
             1 => Label::One,
@@ -80,6 +81,7 @@ impl Label {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Network {
     pub layer_sizes: Vec<u32>,
     pub biases: Vec<LayerBiases>,
@@ -173,7 +175,7 @@ impl Network {
             activations.push(activation.clone());
         }
 
-        let delta = Self::cost_derivative(&activations[activations.len() - 1], label)
+        let mut delta = Self::cost_derivative(&activations[activations.len() - 1], label)
             * zs[zs.len() - 1].map(|x| Self::sigmoid_derivative(*x));
         let (nbl, nwl) = (nabla_b.len(), nabla_w.len());
         nabla_b[nbl - 1] = delta.clone();
@@ -181,11 +183,14 @@ impl Network {
 
         for layer_ind in 2..self.layer_sizes.len() {
             let z = &zs[zs.len() - layer_ind];
-            let delta = self.weights[self.weights.len() - layer_ind + 1].t().dot(&delta)
+            delta = self.weights[self.weights.len() - layer_ind + 1]
+                .t()
+                .dot(&delta)
                 * z.map(|x| Self::sigmoid_derivative(*x));
 
             nabla_b[nbl - layer_ind] = delta.clone();
-            nabla_w[nwl - layer_ind] = delta.dot(&activations[activations.len() - layer_ind - 1].t());
+            nabla_w[nwl - layer_ind] =
+                delta.dot(&activations[activations.len() - layer_ind - 1].t());
         }
 
         (nabla_b, nabla_w)
@@ -266,7 +271,10 @@ impl Network {
 
             // Assess the current performance on the provided holdout set
             let (holdout_correct, holdout_total) = self.evaluate(&validation_data);
-            println!("[Training] Epoch {} done. Holdout accuracy: {} / {}", epoch, holdout_correct, holdout_total);
+            println!(
+                "[Training] Epoch {} done. Holdout accuracy: {} / {}",
+                epoch, holdout_correct, holdout_total
+            );
         }
     }
 
@@ -312,7 +320,6 @@ impl Network {
         Self::sigmoid(z) * (1. - Self::sigmoid(z))
     }
 }
-
 
 /// Turn a input vector (read in from the CSV) into a ndarray training input
 pub fn vector_to_input(inp: Vec<f64>) -> Input {
