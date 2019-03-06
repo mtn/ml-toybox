@@ -8,7 +8,7 @@ extern crate serde_json;
 mod network;
 
 use indicatif::{ProgressBar, ProgressStyle};
-use std::fs;
+// use std::fs;
 
 /// Load a set of inputs and outputs (rust-csv can probably do this directly)
 fn load_data(
@@ -55,21 +55,21 @@ fn main() {
     let testing_data = load_data("data/TestDigitX.csv", "data/TestDigitY.csv", 10000);
     println!("Done loading data");
 
-    let learning_rates = vec![0.1, 0.5, 1., 3.];
-    let hidden_sizes = vec![16, 32, 64, 128, 256];
+    // let learning_rates = vec![0.1, 0.5, 1., 3.];
+    // let hidden_sizes = vec![16, 32, 64, 128, 256];
 
-    for lr in &learning_rates {
-        for hs in &hidden_sizes {
-            let mut network = network::Network::new(vec![784, *hs, 10]);
-            network.train(training_data.clone(), 60, 10, *lr, testing_data.clone());
+    // for lr in &learning_rates {
+    //     for hs in &hidden_sizes {
+    let mut network = network::Network::new(vec![784, 256, 10]);
+    network.train(training_data.clone(), 60, 125, 0.5, testing_data.clone());
 
-            // Save the trained network
-            fs::write(
-                format!("saved_networks/{}_{}.net", lr, hs),
-                serde_json::to_string(&network)
-                    .expect("An error occured while serializing a network"),
-            )
-            .expect("An error occured while writing a saved model to disk");
-        }
-    }
+        // Save the trained network
+        // fs::write(
+        //     format!("saved_networks/{}.net", lr),
+        //     serde_json::to_string(&network)
+        //         .expect("An error occured while serializing a network"),
+        // )
+        // .expect("An error occured while writing a saved model to disk");
+    //     }
+    // }
 }

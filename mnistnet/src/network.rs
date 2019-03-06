@@ -109,14 +109,35 @@ impl Network {
         }
     }
 
-    pub fn feedforward(&self, inp: Input) -> Output {
-        let mut out = inp;
+    fn feedforward_get_all_activations(&self, inp: Input) -> (Vec<LayerActivations>, Vec<LayerActivations>) {
+        let mut raw_activations = Vec::with_capacity(self.layer_sizes.len() - 1);
+        let mut activations = Vec::with_capacity(self.layer_sizes.len());
+        activations.push(inp.clone());
 
-        for (biases, weights) in self.biases.iter().zip(&self.weights) {
-            out = (weights.dot(&out) + biases).map(|x| Self::sigmoid(*x));
+        let mut out = inp;
+        let mut raw_out;
+
+
+        for (biases, weights) in self.biases.iter().zip(&self.weights).take(self.biases.len() - 1) {
+            raw_out = weights.dot(&out) + biases;
+            out = raw_out.map(|x| Self::sigmoid(*x));
+            activations.push(out.clone());
+            raw_activations.push(raw_out.clone());
         }
 
-        out
+        // Apply a softmax to the last layer
+        let lw = &self.weights[self.weights.len() - 1];
+        let lb = &self.biases[self.biases.len() - 1];
+        raw_out = lw.dot(&out) + lb;
+        raw_activations.push(raw_out.clone());
+        let softmax_denom = raw_out.map(|x| x.exp()).sum();
+        activations.push(raw_out.map(|x| x.exp()) / softmax_denom);
+
+        (activations, raw_activations)
+    }
+
+    pub fn feedforward(&self, inp: Input) -> Output {
+        self.feedforward_get_all_activations(inp).0.last().unwrap().clone()
     }
 
     pub fn predict(&self, inp: Input) -> Label {
@@ -162,21 +183,11 @@ impl Network {
             nabla_w.push(Array::zeros(layer_weights.raw_dim()));
         }
 
-        // Store the activations at each layer, feeding forward the input through
-        // the network
-        let mut zs = Vec::with_capacity(self.layer_sizes.len() - 1);
-        let mut activations: Vec<LayerActivations> = vec![input.clone()];
-        let mut activation = input.clone();
+        // Store the raw and non-linear activations at each layer, feeding forward
+        // the input through the network
+        let (activations, zs) = self.feedforward_get_all_activations(input.clone());
 
-        for (biases, weights) in self.biases.iter().zip(&self.weights) {
-            let z = weights.dot(&activation) + biases;
-            activation = z.map(|x| Self::sigmoid(*x));
-            zs.push(z);
-            activations.push(activation.clone());
-        }
-
-        let mut delta = Self::cost_derivative(&activations[activations.len() - 1], label)
-            * zs[zs.len() - 1].map(|x| Self::sigmoid_derivative(*x));
+        let mut delta = Self::cost_derivative(&activations[activations.len() - 1], label);
         let (nbl, nwl) = (nabla_b.len(), nabla_w.len());
         nabla_b[nbl - 1] = delta.clone();
         nabla_w[nwl - 1] = delta.dot(&activations[activations.len() - 2].t());
@@ -196,6 +207,7 @@ impl Network {
         (nabla_b, nabla_w)
     }
 
+    /// The derivative of the cross-entropy cost function
     fn cost_derivative(
         output_activations: &LayerActivations,
         true_activations: &Label,
@@ -206,6 +218,7 @@ impl Network {
     /// Updates weights and biases by doing gradient descent on a minibatch
     fn update_minibatch(&mut self, minibatch: &mut [(Input, Label)], learning_rate: f64) {
         let per_example_lr = learning_rate / minibatch.len() as f64;
+        // let per_example_lr = learning_rate;
 
         let mut nabla_b: Vec<LayerBiases> = Vec::with_capacity(self.biases.len());
         let mut nabla_w: Vec<LayerWeights> = Vec::with_capacity(self.weights.len());
@@ -262,7 +275,10 @@ impl Network {
             );
             // Update each minibatch
             for start_ind in (0..training_data.len()).step_by(minibatch_size as usize) {
-                let minibatch = &mut training_data[start_ind..start_ind + minibatch_size as usize];
+                // Avoid going out of bounds if if the minibatch size doesn't divide
+                // the length of the input training data
+                let upper_ind = std::cmp::min(start_ind + minibatch_size as usize, training_data.len());
+                let minibatch = &mut training_data[start_ind..upper_ind as usize];
 
                 self.update_minibatch(minibatch, learning_rate);
                 pb.inc(1);
@@ -304,7 +320,7 @@ impl Network {
             .take(num_weights)
             .zip(layer_sizes.iter().skip(1))
         {
-            weights.push(Array::random((*l2 as usize, *l1 as usize), distribution));
+            weights.push(Array::random((*l2 as usize, *l1 as usize), distribution) / (*l1 as f64).sqrt());
         }
 
         weights
