@@ -218,7 +218,6 @@ impl Network {
     /// Updates weights and biases by doing gradient descent on a minibatch
     fn update_minibatch(&mut self, minibatch: &mut [(Input, Label)], learning_rate: f64) {
         let per_example_lr = learning_rate / minibatch.len() as f64;
-        // let per_example_lr = learning_rate;
 
         let mut nabla_b: Vec<LayerBiases> = Vec::with_capacity(self.biases.len());
         let mut nabla_w: Vec<LayerWeights> = Vec::with_capacity(self.weights.len());

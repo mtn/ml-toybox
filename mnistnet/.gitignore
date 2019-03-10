@@ -12,3 +12,10 @@ Cargo.lock
 data
 todo.md
 saved_networks/
+*.pred
+*.png
+*.zip
+submission/
+writeup.md
+out.pdf
+plot.py
