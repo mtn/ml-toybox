@@ -1,0 +1,8 @@
+[package]
+name = "complex-step"
+version = "0.1.0"
+authors = ["Michael Noronha <michaeltnoronha@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+num-complex = "0.2"
