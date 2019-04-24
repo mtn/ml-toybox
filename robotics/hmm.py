@@ -1,5 +1,6 @@
 """
 Naive implementations of filtering, smoothing, and Viterbi's algorithm
+Verified against numerical examples
 """
 
 
@@ -21,9 +22,6 @@ class HMM(object):
         for t in transitions:
             assert len(t) == len(initial)
             assert abs(sum(t) - 1) <= 0.001
-        for m in measurements:
-            assert len(m) == len(initial)
-            assert abs(sum(m) - 1) <= 0.001
 
         self.initial_distribution = initial
         self.measurement_distribution = measurements
@@ -152,7 +150,7 @@ class HMM(object):
 
         return deltas, pre
 
-    def get_viterbi_path(self):
+    def get_viterbi_map(self):
         _, pre = self.get_viterbi_results()
 
         path = [argmax(pre[-1])]
@@ -219,7 +217,7 @@ for expected, computed in zip(expected_smoothing, computed_smoothing):
         if abs(e1 - e2) >= 0.001:
             assert False
 
-assert h.get_viterbi_path() == [1, 3, 3]
+assert h.get_viterbi_map() == [1, 3, 3]
 
 expected_deltas = [[0.6, 0, 0], [0.012, 0.048, 0.18], [0.0038, 0.0216, 0.0432]]
 expected_pre = [[None, None, None], [0, 0, 0], [1, 2, 2]]  # 0-indexed
@@ -238,3 +236,14 @@ for expected, computed in zip(expected_pre, computed_pre):
     for e1, e2 in zip(computed, expected):
         if e1 != e2:
             assert False
+
+# Homework example
+initial = uniform(3)
+measurements = [[0.6, 0.1, 0.2], [0.1, 0.7, 0.3], [0.3, 0.2, 0.5]]
+transitions = [[0.2, 0.3, 0.5], [0.2, 0.7, 0.1], [0.4, 0.2, 0.4]]
+observations = [2, 3, 1]
+h = HMM(initial, measurements, transitions, observations)
+
+print(h.get_filtering_map())
+print(h.get_smoothing_map())
+print(h.get_viterbi_map())
