@@ -2,6 +2,7 @@
 Naive implementations of filtering, smoothing, and Viterbi's algorithm
 """
 
+
 class HMM(object):
     def __init__(self, initial, measurements, transitions, observations):
         """
@@ -34,22 +35,45 @@ class HMM(object):
     def compute_alphas(self):
         "Compute alphas for all k over all timesteps"
 
-        a0 = [self.initial_distribution[s] * self.measurement_distribution[self.observations[0]][s] for s in range(self.num_states)]
+        a0 = [
+            self.initial_distribution[s]
+            * self.measurement_distribution[self.observations[0]][s]
+            for s in range(self.num_states)
+        ]
 
         alphas = [a0]
 
         for t in range(1, len(self.observations)):
-            alphas.append([self.measurement_distribution[self.observations[t]][s] * sum(alphas[-1][q] * self.transition_distribution[q][s] for q in range(self.num_states)) for s in range(self.num_states)])
+            alphas.append(
+                [
+                    self.measurement_distribution[self.observations[t]][s]
+                    * sum(
+                        alphas[-1][q] * self.transition_distribution[q][s]
+                        for q in range(self.num_states)
+                    )
+                    for s in range(self.num_states)
+                ]
+            )
 
         return alphas
 
     def compute_betas(self):
         "Compute betas for all k over all timesteps"
 
-        betas = [[1. for _ in range(self.num_states)]]
+        betas = [[1.0 for _ in range(self.num_states)]]
 
         for t in range(len(self.observations) - 1, 0, -1):
-            betas.append([sum(betas[-1][q] * self.transition_distribution[s][q] * self.measurement_distribution[self.observations[t]][q] for q in range(self.num_states)) for s in range(self.num_states)])
+            betas.append(
+                [
+                    sum(
+                        betas[-1][q]
+                        * self.transition_distribution[s][q]
+                        * self.measurement_distribution[self.observations[t]][q]
+                        for q in range(self.num_states)
+                    )
+                    for s in range(self.num_states)
+                ]
+            )
 
         return betas[::-1]
 
@@ -61,7 +85,7 @@ class HMM(object):
         dists = []
         for a in alphas:
             norm = sum(a)
-            dists.append([aa/norm for aa in a])
+            dists.append([aa / norm for aa in a])
 
         return dists
 
@@ -101,7 +125,13 @@ class HMM(object):
         ending at each state at each timestep, and pre encodes the path.
         """
 
-        deltas = [[self.initial_distribution[s] * self.measurement_distribution[self.observations[0]][s] for s in range(self.num_states)]]
+        deltas = [
+            [
+                self.initial_distribution[s]
+                * self.measurement_distribution[self.observations[0]][s]
+                for s in range(self.num_states)
+            ]
+        ]
         pre = [[None for _ in range(self.num_states)]]
 
         for t in range(1, len(self.observations)):
@@ -109,7 +139,12 @@ class HMM(object):
             sd = []
             pd = []
             for s in range(self.num_states):
-                dd = [deltas[-1][q] * self.transition_distribution[q][s] * self.measurement_distribution[self.observations[t]][s] for q in range(self.num_states)]
+                dd = [
+                    deltas[-1][q]
+                    * self.transition_distribution[q][s]
+                    * self.measurement_distribution[self.observations[t]][s]
+                    for q in range(self.num_states)
+                ]
                 sd.append(max(dd))
                 pd.append(argmax(dd))
             deltas.append(sd)
@@ -131,9 +166,12 @@ class HMM(object):
         return path[::-1]
 
     def __repr__(self):
-        return f"HMM (\ninitial:\n{self.initial_distribution}" + \
-               f"\nmeasurement:\n{self.measurement_distribution}" + \
-               f"\ntransitions:\n{self.transition_distribution}\n)"
+        return (
+            f"HMM (\ninitial:\n{self.initial_distribution}"
+            + f"\nmeasurement:\n{self.measurement_distribution}"
+            + f"\ntransitions:\n{self.transition_distribution}\n)"
+        )
+
 
 def argmax(l):
     "Ind of max iterable entry"
@@ -152,14 +190,14 @@ def uniform(n):
     n :: int
     """
 
-    return [1/n for _ in range(n)]
+    return [1 / n for _ in range(n)]
 
 
 # Check it works on an example
 # Example from: E. Frazzoli HMM lecture notes, 2010
 initial = [1, 0, 0]
 measurements = [[0.6, 0.2, 0.2], [0.2, 0.6, 0.2], [0.2, 0.2, 0.6]]
-transitions = [[0.1, 0.4, 0.5], [0.4, 0., 0.6], [0., 0.6, 0.4]]
+transitions = [[0.1, 0.4, 0.5], [0.4, 0.0, 0.6], [0.0, 0.6, 0.4]]
 observations = [1, 3, 3]
 h = HMM(initial, measurements, transitions, observations)
 
@@ -181,10 +219,10 @@ for expected, computed in zip(expected_smoothing, computed_smoothing):
         if abs(e1 - e2) >= 0.001:
             assert False
 
-assert h.get_viterbi_path() == [1,3,3]
+assert h.get_viterbi_path() == [1, 3, 3]
 
 expected_deltas = [[0.6, 0, 0], [0.012, 0.048, 0.18], [0.0038, 0.0216, 0.0432]]
-expected_pre = [[None, None, None], [0, 0, 0], [1, 2, 2]] # 0-indexed
+expected_pre = [[None, None, None], [0, 0, 0], [1, 2, 2]]  # 0-indexed
 
 computed_deltas, computed_pre = h.get_viterbi_results()
 
