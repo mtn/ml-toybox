@@ -1,6 +1,8 @@
 """
-Naive implementations of filtering, smoothing, and Viterbi's algorithm
-Verified against numerical examples
+Naive implementations of filtering, smoothing, and Viterbi's algorithm.
+Verified against numerical examples.
+
+Author: Michael Noronha
 """
 
 
@@ -151,6 +153,8 @@ class HMM(object):
         return deltas, pre
 
     def get_viterbi_map(self):
+        "Get the MAP optimal path via the Viterbi algorithm"
+
         _, pre = self.get_viterbi_results()
 
         path = [argmax(pre[-1])]
