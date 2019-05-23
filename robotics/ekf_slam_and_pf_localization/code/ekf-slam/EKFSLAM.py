@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 from Visualization import Visualization
 
 
+STATE_LEN = 3 # the number of elements in the state vector
+
+
 class EKFSLAM(object):
     # Construct an EKF instance with the following set of variables
     #    mu:                 The initial mean vector
@@ -31,6 +34,7 @@ class EKFSLAM(object):
         else:
             self.vis = None
 
+
     # Visualize filter strategies
     #   deltat:  Step size
     #   XGT:     Array with ground-truth pose
@@ -42,20 +46,38 @@ class EKFSLAM(object):
             self.vis.drawGroundTruthPose(XGT[0], XGT[1], XGT[2])
         plt.pause(deltat)
 
+
+    # Compute z_t according to the measurement model
+    def compute_zt(self, x_t, y_t, theta_t, x_m, y_m):
+        sn = np.sin(theta_t)
+        cs = np.cos(theta_t)
+
+        return np.array([[ cs * (x_m - x_t) + sn * (y_m - y_t)],
+                         [-sn * (x_m - x_t) + cs * (y_m - y_t)]])
+
+
     # Perform the prediction step to determine the mean and covariance
     # of the posterior belief given the current estimate for the mean
     # and covariance, the control data, and the process model
     #    u:                 The forward distance and change in heading
     def prediction(self, u):
 
-        # Your code goes here
-        # print "Please add code"
         u1 = u[0]
         u2 = u[1]
 
+        # Project state ahead
         self.mu[0] = self.mu[0] + u1 * np.cos(self.mu[2])
         self.mu[1] = self.mu[1] + u1 * np.sin(self.mu[2])
         self.mu[2] = self.mu[2] + u2
+
+        F = np.array([[1., 0., -u[0] * np.sin(x_prev[2])],
+                      [0., 1.,  u[0] * np.cos(x_prev[2])],
+                      [0., 0.,                        1.]])
+
+        # Project error covariance ahead
+        self.Sigma[:STATE_LEN, :STATE_LEN] = F @ self.Sigma[:STATE_LEN, :STATE_LEN] @ F.T + self.R
+        self.Sigma[:STATE_LEN, STATE_LEN:] = F @ self.Sigma[:STATE_LEN, STATE_LEN:]
+        self.Sigma[STATE_LEN:, :STATE_LEN] = self.Sigma[:STATE_LEN, STATE_LEN:] @ F.T
 
     # Perform the measurement update step to compute the posterior
     # belief given the predictive posterior (mean and covariance) and
@@ -64,8 +86,21 @@ class EKFSLAM(object):
     #    i:     The ID of the observed landmark
     def update(self, z, i):
 
-        # Your code goes here
-        print("Please add code")
+        x_m, y_m = z
+        z = np.array(z)
+        x_t, y_t, theta_t = self.mu[:STATE_LEN]
+
+        cs = np.cos(theta_t)
+        sn = np.sin(theta_t)
+        H = np.array([[-cs, -sn, -x_m * sn + x_t * sn + y_m * cs - y_t * cs],
+                      [ sn, -cs, -x_m * cs + x_t * cs - y_m * sn + y_t * sn]])
+
+        K = self.Sigma @ H.T @ np.linalg.inv(H @ self.Sigma @ H.T + self.Q)
+        # TODO add noise
+        h = self.compute_zt(x_t, y_t, theta_t, x_m, y_m)
+
+        self.mu = self.mu + K @ (z - h)
+        self.Sigma = self.Sigma - K @ H @ self.Sigma
 
     # Augment the state vector to include the new landmark
     #    z:     The (x,y) position of the landmark relative to the robot

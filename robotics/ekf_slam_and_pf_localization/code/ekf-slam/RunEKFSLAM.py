@@ -44,6 +44,7 @@ if __name__ == "__main__":
 
     mu0 = X0  # np.array([[-4.0, -4.0, math.pi/2
 
+    # TODO try setting this to zeros initially
     # You can also try setting this to a 3x3 matrix of zeros
     Sigma0 = 0.01 * np.eye((3))
 
