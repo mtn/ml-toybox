@@ -22,9 +22,10 @@ if __name__ == "__main__":
         sys.exit(2)
 
     # Load data
-    Data = pickle.load(open(sys.argv[1], "rb"))
+    Data = pickle.load(open(sys.argv[1], "rb"), encoding="latin1")
     deltat = Data["deltat"]  # [0,0]
     occupancy = Data["occupancy"]
+    # occupancy = np.array([[0,0,0],[0,0,0],[0,0,0]])
     U = Data["U"]
     X0 = Data["X0"]
     Ranges = Data["Ranges"]
@@ -42,7 +43,7 @@ if __name__ == "__main__":
     laser = Laser(numBearings, sparsity)
 
     # Instantiate the PF class
-    pf = PF(numParticles, Alpha, laser, gridmap, True)
+    pf = PF(numParticles, Alpha, laser, gridmap, visualize=True)
 
     filename = os.path.basename(sys.argv[1]).split(".")[0] + "_Pn" + str(numParticles)
     pf.run(U, Ranges, deltat, X0, XGT, filename)

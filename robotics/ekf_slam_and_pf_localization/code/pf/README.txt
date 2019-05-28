@@ -46,7 +46,7 @@ Gridmap.py:
 # You can change the LIDAR model by updating Laser.py
 
 # model 1: "realistic"
-self.pHit = 0.95;
+:elf.pHit = 0.95;
 self.pShort = 0.02;
 self.pMax = 0.02;
 self.pRand = 0.01;

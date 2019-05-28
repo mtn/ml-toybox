@@ -52,7 +52,7 @@ class Visualization(object):
 
             xc = xc = mu[i : i + 2]
 
-            if self.map_pose_handle.has_key(i):
+            if i in self.map_pose_handle:
                 handle = self.map_pose_handle[i]
                 handle.set_xdata(xc[0])
                 handle.set_ydata(xc[1])
@@ -63,7 +63,7 @@ class Visualization(object):
             XY = self.getEllipse(xc, Sigma[i : i + 2][:, i : i + 2])
 
             if XY is not None:
-                if self.map_ellipse_handle.has_key(i):
+                if i in self.map_ellipse_handle:
                     handle = self.map_ellipse_handle[i]
                     handle.set_xdata(XY[0, :])
                     handle.set_ydata(XY[1, :])
@@ -93,6 +93,9 @@ class Visualization(object):
     # Returns:
     #   XY:       2 x m array where each column defines an [x; y] coordinate
     def getEllipse(self, xc, Sigma, nSigma=2):
+
+        assert Sigma.shape == (2, 2)
+        assert xc.shape == (2, 1)
 
         if nla.det(Sigma) == 0:
             return None

@@ -30,8 +30,8 @@ class PF(object):
         self.gridmap = gridmap
         self.visualize = visualize
 
-        # particles is a numParticles x 3 array, where each column denote a particle_handle
-        # weights is a numParticles x 1 array of particle weights
+        # particles is a 3 x numParticles array, where each column denote a particle_handle
+        # weights is a 1 x numParticles array of particle weights
         self.particles = None
         self.weights = None
 
@@ -41,8 +41,11 @@ class PF(object):
         else:
             self.vis = None
 
+        # Seed the random number for reproducibility
+        np.random.seed(0)
+
     # Samples the set of particles according to a uniform distribution
-    # and sets the weigts to 1/numParticles. Particles in collision are rejected
+    # and sets the weigts to 1/numParticles. Particles in collision are rejected.
     def sampleParticlesUniform(self):
 
         (m, n) = self.gridmap.getShape()
@@ -135,46 +138,117 @@ class PF(object):
     # This model corresponds to that in Table 5.3 in Probabilistic Robotics
     #
     # Returns:
-    #   (xs, ys, thetas):   Position and heading for sample
-    #   (u1, u2):           Control (velocity) inputs
-    #   deltat:             Time increment
-    def sampleMotion(self, x, y, theta, u1, u2, deltat):
-        pass
+    #   (nothing) -- update performed in place
+    def sampleMotion(self, u1, u2, deltat):
+        # Draw all the samples at once and combine them into one big noise vector
+        v1, v2, gamma = self.sampleMotionNoise(u1, u2)
 
-        # Your code goes here: Implement the algorithm given in Table 5.3
-        # Note that the "sample" function in the text assumes zero-mean
-        # Gaussian noise. You can use the NumPy random.normal() function
-        # Be sure to reject samples that are in collision
-        # (see Gridmap.inCollision), and to unwrap orientation so that it
-        # it is between -pi and pi.
+        ubar_1 = u1 + v1
+        ubar_2 = u2 + v2
 
-        # Hint: Repeatedly calling np.random.normal() inside a for loop
-        #       can consume a lot of time. You may want to consider drawing
-        #       n (e.g., n=10) samples of each noise term at once
-        #       (drawing n samples is faster than drawing 1 sample n times)
-        #       and if none of the estimated poses are not in collision, assume
-        #       that the robot doesn't move from t-1 to t.
+        x_t = self.particles[0, :] + (ubar_1 / ubar_2) * (
+            np.sin(self.particles[2, :] + ubar_2 * deltat)
+            - np.sin(self.particles[2, :])
+        )
+        y_t = self.particles[1, :] + (ubar_1 / ubar_2) * (
+            np.cos(self.particles[2, :])
+            - np.cos(self.particles[2, :] + ubar_2 * deltat)
+        )
+        theta_t = self.particles[2, :] + ubar_2 * deltat + gamma * deltat
+
+        # For particles that would end up in collision, resample noise and try to move
+        # them (up to 5 times). Even if they aren't moved, set their direction.
+        for i, (x, y) in enumerate(zip(x_t[0], y_t[0])):
+            inCollision = self.gridmap.inCollision(x, y)
+            # if inCollision:
+            #     x_t[0][i] = self.particles[0, i]
+            #     y_t[0][i] = self.particles[1, i]
+                # theta_t[0][i] = self.particles[2, i]
+            attempts = 0
+            while inCollision and attempts < 5:
+                # Sample new noise and set the position with it
+                v1, v2, gamma = self.sampleMotionNoise(u1, u2, fullVector=False)
+                ubar_1, ubar_2 = u1 + v1, u2 + v2
+                x_t[0][i] = self.particles[0, i] + (ubar_1 / ubar_2) * (
+                    np.sin(self.particles[2, i] + ubar_2 * deltat)
+                    - np.sin(self.particles[2, i])
+                )
+                y_t[0][i] = self.particles[1, i] + (ubar_1 / ubar_2) * (
+                    np.cos(self.particles[2, i])
+                    - np.cos(self.particles[2, i] + ubar_2 * deltat)
+                )
+                theta_t[0][i] = self.particles[2, i] + ubar_2 * deltat + gamma * deltat
+
+                inCollision = self.gridmap.inCollision(x_t[0][i], y_t[0][i])
+                if not inCollision:
+                    break
+
+                attempts += 1
+
+            if attempts == 5:
+                # Leave x and y unchanged, but still update bearing
+                x_t[0][i] = self.particles[0, i]
+                y_t[0][i] = self.particles[1, i]
+
+        self.particles = np.vstack((x_t, y_t, theta_t))
+        assert self.particles.shape == (3, self.numParticles), self.particles.shape
+
+    # Convenience function for sampling motion noise
+    def sampleMotionNoise(self, u1, u2, fullVector=True):
+        v1 = np.random.normal(
+            0.0,
+            np.sqrt(self.Alpha[0, 0] * (u1 ** 2) + self.Alpha[1, 0] * (u2 ** 2)),
+            size=(1, self.numParticles) if fullVector else None,
+        )
+        v2 = np.random.normal(
+            0.0,
+            np.sqrt(self.Alpha[2, 0] * (u1 ** 2) + self.Alpha[3, 0] * (u2 ** 2)),
+            size=(1, self.numParticles) if fullVector else None,
+        )
+        gamma = np.random.normal(
+            0.0,
+            np.sqrt(self.Alpha[4, 0] * (u1 ** 2) + self.Alpha[5, 0] * (u2 ** 2)),
+            size=(1, self.numParticles) if fullVector else None,
+        )
+
+        return v1, v2, gamma
 
     # Function that performs resampling with replacement
     def resample(self):
-        pass
+        indices = np.random.choice(
+            [i for i in range(self.numParticles)],
+            size=(1, self.numParticles),
+            p=self.weights.reshape(self.numParticles),
+            replace=True,
+        )
 
-        # Your code goes here
-        # The np.random.choice function may be useful
+        # Resample, and reset the weights to uniform for the next update
+        self.particles = self.particles[:, indices].reshape(3, self.numParticles)
+        # self.weights.fill(1. / self.numParticles)
 
     # Perform the prediction step
     def prediction(self, u, deltat):
-        pass
 
-        # Your code goes here
-        # This may simply be a call to sampleMotion
+        # Update the position of every particle according the the motion model + noise
+        self.sampleMotion(*u, deltat)
 
     # Perform the measurement update step
     #   Ranges:   Array of ranges (Laser.Angles provides bearings)
     def update(self, Ranges):
-        pass
 
-        # Your code goes here
+        likelihoods = self.laser.scanLikelihood(Ranges, self.particles, self.gridmap)
+        self.weights = likelihoods.reshape((1, self.numParticles)) / np.sum(likelihoods)
+
+        doResample = True
+        doNeffComputation = doResample and False
+        if doNeffComputation:
+            nEff = ((1. / self.weights) ** 2).sum()
+            if nEff > 2 * self.numParticles / 3:
+                self.resample()
+            return
+
+        if doResample and np.random.random_sample() < 0.3:
+            self.resample()
 
     # Runs the particle filter algorithm
     #   U:        Array of control inputs, one column per time step
@@ -187,7 +261,7 @@ class PF(object):
     def run(self, U, Ranges, deltat, X0, XGT, filename):
 
         # Try different sampling strategies (including different values for sigma)
-        sampleGaussian = False
+        sampleGaussian = True
         if sampleGaussian and (X0 is not None):
             sigma = 0.5
             self.sampleParticlesGaussian(X0[0, 0], X0[1, 0], sigma)
@@ -199,12 +273,13 @@ class PF(object):
             u = U[:, k]
             ranges = Ranges[:, k + 1][0]
 
-            if self.visualize:
-                if XGT is None:
-                    self.render(ranges, deltat, None)
-                else:
-                    self.render(ranges, deltat, XGT[:, k])
+            self.prediction(u, deltat)
+            self.update(ranges)
 
-            # Your code goes here
+        if self.visualize:
+            if XGT is None:
+                self.render(ranges, deltat, None)
+            else:
+                self.render(ranges, deltat, XGT[:, k])
 
         plt.savefig(filename)

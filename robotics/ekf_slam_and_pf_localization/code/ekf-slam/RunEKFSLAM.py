@@ -10,7 +10,7 @@ if __name__ == "__main__":
     # This function should be called with one argument:
     #    sys.argv[1]: Pickle file defining problem setup
     if len(sys.argv) == 2:
-        Data = pickle.load(open(sys.argv[1], "rb"), ncoding="latin1")
+        Data = pickle.load(open(sys.argv[1], "rb"), encoding="latin1")
     else:
         print("usage: RunEKFSLAM.py Data.pickle")
         sys.exit(2)
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     # [id; x; y] and indicates the (x,y) position of landmark with id
     MGT = Data["MGT"]
 
-    mu0 = X0  # np.array([[-4.0, -4.0, math.pi/2
+    mu0 = X0
 
     # TODO try setting this to zeros initially
     # You can also try setting this to a 3x3 matrix of zeros

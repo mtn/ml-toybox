@@ -27,20 +27,25 @@ class Laser(object):
     # a given pose in the provided map according to the algorithm given
     # in Table 6.1 of Probabilistic Robotics
     #
-    #   Ranges:        An array of ranges (the angles are defined by self.Angles)
-    #   x, y, thta:    The robot's position (x,y) and heading
+    #   Ranges (z):    An array of ranges (the angles are defined by self.Angles)
+    #   xs:            An array of particles representing hypotheses about the robot's
+    #                  position.
     #   gridmap:       An instance of the Gridmap class that specifies
     #                  an occupancy grid representation of the map
     #                  where 1: occupied and 0: free
     #
     # Returns:
     #   likelihood:     Scan likelihood
-    def scanProbability(self, z, x, gridmap):
+    def scanLikelihood(self, z, x, gridmap):
+        ztks, _ = self.rayTracing(*x, self.Angles, gridmap)
+        ztks = ztks.T
 
-        # Your code goes here
-        # Implement the algorithm given in Table 6.1
-        # You are provided with a vectorized implementation of ray tracing below
-        print("Please add code")
+        return (
+            self.pHit * self.normal.pdf(z - ztks) * (z >= 0) * (z <= self.zMax)
+            + self.pShort * self.exponential.pdf(z) * (z >= 0) * (z <= ztks)
+            + self.pMax * (z == self.zMax)
+            + self.pRand * (1 / self.zMax) * (z >= 0) * (z < self.zMax)
+        ).prod(axis=0)
 
     # Function to convert range and bearing to (x,y) in LIDAR frame
     #   range:   1xn array of range measurements
