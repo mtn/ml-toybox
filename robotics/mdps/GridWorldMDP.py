@@ -39,6 +39,7 @@ class GridWorldMDP(object):
     def __init__(self, noise=0.2, gamma=0.9):
 
         self.gamma = gamma
+        self.noise = noise
 
         # The actions
         self.A = ["N", "E", "S", "W"]
@@ -357,7 +358,7 @@ class GridWorldMDP(object):
                     ec="k",
                 )
 
-        pyplot.savefig("out.png")
+        pyplot.savefig(f"outGamma{self.gamma}Noise{self.noise}".replace(".", "-"))
 
     def valueIteration(self, epsilon):
         # Perform value iteration with the following variables
